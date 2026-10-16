@@ -1,0 +1,25 @@
+# Example word list for captions + term cards (small, synthetic: replace or extend it).
+# One term per line. "a = b = c" lines are aliases: the same thing under different names.
+# "term :: note" gives the card text (optional; the model writes one when absent).
+# Your own terms go in ~/.config/meetcap/vocab.txt (same format) and are merged in at start.
+
+DNS = Domain Name System :: turns host names into IP addresses
+DHCP :: hands out IP addresses to devices on a network
+VPN = Virtual Private Network :: encrypted tunnel to another network
+SSO = single sign-on :: one login for many apps
+MFA = multi-factor authentication = 2FA :: login with a second proof besides the password
+RADIUS :: network login protocol (Wi-Fi, VPN) against a central user list
+Kerberos :: ticket-based login protocol used by Active Directory
+SPF :: DNS record listing which servers may send mail for a domain
+DKIM :: DNS-published key that signs outgoing mail
+DMARC :: policy on SPF + DKIM: what to do with mail that fails
+Active Directory = AD :: Microsoft directory of users, groups and computers
+Intune = Endpoint Manager = MEM :: Microsoft device management
+Autopilot :: Windows device provisioning from the box to a managed laptop
+RMM = remote monitoring and management :: tool for managing many computers remotely
+MDM = mobile device management :: policy and app control for phones and laptops
+help desk = service desk :: first-line IT support
+SLA = service level agreement :: promised response and fix times
+nslookup = dig :: command-line DNS lookup tools
+PowerShell :: Microsoft scripting shell
+ServiceNow :: IT ticketing platform

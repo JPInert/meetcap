@@ -1,0 +1,4 @@
+#!/bin/sh
+# meetcap — live call captions + jargon panel, post-call notes + metrics (python package: mt)
+# (not "mt": /usr/bin/mt is the tape-drive tool)
+cd "$(dirname "$(readlink -f "$0")")/.." && exec python3 -m mt "$@"

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=meetcap
+GenericName=Live call captions & notes
+Comment=Live captions and term cards during a call; notes and metrics after
+Exec=@BIN@ widget
+Icon=meetcap
+Terminal=false
+Categories=AudioVideo;Office;Utility;
+StartupWMClass=meetcap

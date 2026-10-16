@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mt live</title>
+<style>
+  :root { --bg:#0e0e12; --fg:#f2f2f2; --dim:#8a8a96; --acc:#b48cff; --warn:#ffb347; --card:#1b1b24; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:18px/1.4 system-ui, sans-serif;
+         display:flex; flex-direction:column; height:100vh; }
+  header { display:flex; gap:.6em; align-items:center; padding:.4em .8em; background:#16161d; font-size:14px; color:var(--dim); flex-wrap:wrap; }
+  header b { color:var(--fg); }
+  .banner { padding:.5em .8em; font-size:15px; display:flex; justify-content:space-between; gap:1em; }
+  .consent { background:#2a2140; }
+  .warn { background:#3a2a10; color:var(--warn); }
+  .banner button { background:none; border:1px solid currentColor; color:inherit; border-radius:6px; cursor:pointer; }
+  main { flex:1; display:grid; grid-template-columns: 1fr 320px; gap:0; min-height:0; }
+  #captions { overflow-y:auto; padding:.6em 1em; font-size:26px; line-height:1.35; }
+  .line { margin:.25em 0; }
+  .line.old { color:#c9c9d1; font-size:21px; }
+  .line .fixedmark { color:var(--acc); font-size:14px; margin-left:.4em; }
+  mark { background:none; color:var(--acc); font-weight:600; }
+  #partial { color:var(--dim); font-style:italic; }
+  aside { border-left:1px solid #26262f; display:flex; flex-direction:column; min-height:0; }
+  aside h2 { font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); margin:.6em .8em .3em; }
+  #cards { overflow-y:auto; flex:1; padding:0 .6em; }
+  .card { background:var(--card); border-radius:8px; padding:.45em .6em; margin:.35em 0; font-size:15px; }
+  .card .t { color:var(--acc); font-weight:700; font-size:18px; }
+  .card .h { color:var(--dim); font-size:13px; }
+  #questions { max-height:30vh; overflow-y:auto; padding:0 .8em .6em; font-size:14px; color:#d6d6de; }
+  #questions li { margin:.2em 0; }
+  #repeat { position:fixed; inset:0; background:rgba(8,8,12,.96); display:none; align-items:center; justify-content:center; padding:2em; font-size:40px; text-align:center; cursor:pointer; }
+  footer { padding:.4em .8em; background:#16161d; display:flex; gap:.6em; align-items:center; font-size:13px; color:var(--dim); }
+  footer button { font-size:16px; padding:.35em .9em; border-radius:8px; border:0; background:var(--acc); color:#000; font-weight:700; cursor:pointer; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } aside { border-left:0; border-top:1px solid #26262f; max-height:40vh; } }
+</style>
+</head>
+<body>
+<header><b>mt live</b><span id="status">connecting…</span><span id="engine"></span><span id="voice"></span></header>
+<div class="banner consent" id="consent">Say first: "Mind if I use a transcription tool for my notes?" <button onclick="this.parentNode.remove()">done</button></div>
+<div id="warns"></div>
+<main>
+  <section id="captions"><div id="lines"></div><div id="partial"></div></section>
+  <aside>
+    <h2>Terms</h2><div id="cards"></div>
+    <h2>Questions asked</h2><ol id="questions"></ol>
+  </aside>
+</main>
+<footer><button id="rbtn" title="space">What did they say?</button><span>space = repeat last line · captions are THEIR side only</span></footer>
+<div id="repeat" onclick="this.style.display='none'"></div>
+<script>
+const lines = {}, order = [];
+let terms = [];
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function hl(text) {
+  let h = esc(text);
+  for (const t of terms) {
+    const flags = (t === t.toUpperCase() && /[A-Z]/.test(t)) ? 'g' : 'gi';   // "IT" must not light up "it"
+    const re = new RegExp('(?<![\\w-])(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?![\\w-])', flags);
+    h = h.replace(re, '<mark>$1</mark>');
+  }
+  return h;
+}
+function render(id) {
+  const l = lines[id]; let el = document.getElementById('l' + id);
+  if (!el) { el = document.createElement('div'); el.className = 'line'; el.id = 'l' + id; document.getElementById('lines').appendChild(el); }
+  el.innerHTML = hl(l.text) + (l.fixed ? '<span class="fixedmark">fixed</span>' : '');
+  const all = document.querySelectorAll('.line');
+  all.forEach((e, i) => e.classList.toggle('old', i < all.length - 2));
+  const c = document.getElementById('captions'); c.scrollTop = c.scrollHeight;
+}
+function isQuestion(t) { return /\?\s*$/.test(t) || /^(what|how|why|when|where|which|who|can you|could you|tell me|walk me|describe|have you|do you|did you|would you|give me)\b/i.test(t.trim()); }
+function addCard(c) {
+  if (!terms.includes(c.term)) terms.push(c.term);
+  const d = document.createElement('div'); d.className = 'card';
+  d.innerHTML = '<div class="t">' + esc(c.term) + '</div>' +
+    (c.heard ? '<div class="h">heard as "' + esc(c.heard) + '"</div>' : '') +
+    '<div>' + esc(c.note || '') + '</div>' +
+    (c.aka && c.aka.length ? '<div class="h">aka ' + esc(c.aka.join(', ')) + '</div>' : '');
+  const box = document.getElementById('cards'); box.prepend(d);
+}
+function reset() {
+  for (const k in lines) delete lines[k]; order.length = 0; terms = [];
+  for (const id of ['lines', 'cards', 'questions', 'warns']) document.getElementById(id).innerHTML = '';
+  document.getElementById('partial').textContent = '';
+}
+function handle(e) {
+  if (e.type === 'reset') reset();
+  else if (e.type === 'partial') document.getElementById('partial').textContent = e.text;
+  else if (e.type === 'commit') {
+    document.getElementById('partial').textContent = '';
+    lines[e.id] = {text: e.text}; order.push(e.id); render(e.id);
+    if (isQuestion(e.text)) { const li = document.createElement('li'); li.id = 'q' + e.id; li.textContent = e.text; document.getElementById('questions').appendChild(li); }
+  } else if (e.type === 'fix' && lines[e.id]) {
+    lines[e.id] = {text: e.text, fixed: true}; render(e.id);
+    const q = document.getElementById('q' + e.id); if (q) q.textContent = e.text;
+  } else if (e.type === 'card') addCard(e);
+  else if (e.type === 'status') {
+    document.getElementById('status').textContent = e.text || '';
+    if (e.engine) document.getElementById('engine').textContent = '· ' + e.engine;
+    if (e.voice) document.getElementById('voice').textContent = '· ' + e.voice;
+    if (e.terms) terms = e.terms.concat(terms.filter(t => !e.terms.includes(t)));
+  } else if (e.type === 'warn') {
+    const w = document.getElementById('warns'); w.innerHTML = '';
+    for (const m of e.items) { const d = document.createElement('div'); d.className = 'banner warn'; d.textContent = '⚠ ' + m; w.appendChild(d); }
+  }
+}
+function repeat() {
+  const last = order[order.length - 1]; if (!last) return;
+  const r = document.getElementById('repeat'); r.textContent = lines[last].text; r.style.display = 'flex';
+}
+document.getElementById('rbtn').onclick = repeat;
+document.addEventListener('keydown', ev => { if (ev.code === 'Space') { ev.preventDefault(); const r = document.getElementById('repeat'); if (r.style.display === 'flex') r.style.display = 'none'; else repeat(); } });
+function connect() {
+  const es = new EventSource('events');
+  es.onopen = () => document.getElementById('status').textContent = 'live';
+  es.onmessage = m => handle(JSON.parse(m.data));
+  es.onerror = () => { document.getElementById('status').textContent = 'reconnecting…'; };
+}
+connect();
+</script>
+</body>
+</html>

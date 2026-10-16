@@ -1,0 +1,5 @@
+# Spoken forms: what speech-to-text tends to write for a term, so cards still fire on a
+# mis-hearing. Same format as base.txt. Synthetic examples; build yours from your own transcripts.
+DMARC = d mark = the mark = dee mark :: policy on SPF + DKIM: what to do with mail that fails
+Kerberos = cur burrows = kerb eros :: ticket-based login protocol used by Active Directory
+Intune = in tune = into :: Microsoft device management
